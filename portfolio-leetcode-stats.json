@@ -1,0 +1,189 @@
+{
+  "name": "portfolio-leetcode-stats",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "08b5e6bd-b14e-479d-bd98-a240a8d69184",
+      "name": "On App Start / Manual"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -160
+      ],
+      "id": "6ffe9e88-520c-4ac4-bf53-8796da1e0e7c",
+      "name": "Every 1 hour"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://leetcode.com/graphql",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Referer",
+              "value": "https://leetcode.com"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"\\n    query userProblemsSolved($username: String!) {\\n  allQuestionsCount {\\n    difficulty\\n    count\\n  }\\n  matchedUser(username: $username) {\\n    submitStats: submitStatsGlobal {\\n      acSubmissionNum {\\n        difficulty\\n        count\\n        submissions\\n      }\\n    }\\n    profile {\\n      ranking\\n      reputation\\n    }\\n  }\\n}\\n    \",\n  \"variables\": {\n    \"username\": \"riyogs\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        240,
+        -80
+      ],
+      "id": "4a8d82fa-949f-4bb8-a2cb-c2ed9662f14e",
+      "name": "Get Stats"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil data respon\nconst data = $input.first().json.data;\n\n// Cek jika user tidak ditemukan\nif (!data.matchedUser) {\n  throw new Error(\"User LeetCode not found! Check username.\");\n}\n\nconst stats = data.matchedUser.submitStats.acSubmissionNum;\nconst profile = data.matchedUser.profile;\n\n// Mencari angka berdasarkan difficulty\nconst easy = stats.find(s => s.difficulty === 'Easy').count;\nconst medium = stats.find(s => s.difficulty === 'Medium').count;\nconst hard = stats.find(s => s.difficulty === 'Hard').count;\nconst total = stats.find(s => s.difficulty === 'All').count;\n\nreturn {\n  json: {\n    platform: \"leetcode\",\n    stats: {\n      ranking: profile.ranking,\n      total_solved: total,\n      easy: easy,\n      medium: medium,\n      hard: hard,\n      last_fetched: new Date().toISOString()\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -80
+      ],
+      "id": "c10f38f8-043b-4874-ae52-ed89febf91f8",
+      "name": "Calculate"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "platform_stats",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "platform",
+              "condition": "eq",
+              "keyValue": "={{ $json.platform }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -80
+      ],
+      "id": "6ea69c7f-5499-4dde-b870-449cc506313d",
+      "name": "Update a row Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "h4k5YA7fYcsjF35W",
+          "name": "Supabase Portfolio Stats"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 1 hour": {
+      "main": [
+        [
+          {
+            "node": "Get Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On App Start / Manual": {
+      "main": [
+        [
+          {
+            "node": "Get Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stats": {
+      "main": [
+        [
+          {
+            "node": "Calculate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate": {
+      "main": [
+        [
+          {
+            "node": "Update a row Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "11c21550-15ee-4518-890b-4699ec8ec393",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "37c66f27f19a42458ede6336939db7c94b24476e9651972bcb9c0725fbba68b2"
+  },
+  "id": "PmvH7wNq15GIMw6rzb0Bd",
+  "tags": [
+    {
+      "updatedAt": "2026-01-14T05:14:17.060Z",
+      "createdAt": "2026-01-14T05:14:17.060Z",
+      "id": "Cjf6WX8ozlEOLcQo",
+      "name": "stats"
+    },
+    {
+      "updatedAt": "2026-01-07T04:58:37.869Z",
+      "createdAt": "2026-01-07T04:58:37.869Z",
+      "id": "W13SvI2LXyZ0LcHa",
+      "name": "n8n"
+    },
+    {
+      "updatedAt": "2026-01-14T14:35:36.788Z",
+      "createdAt": "2026-01-14T14:35:36.788Z",
+      "id": "etw2bGlaJuUAj2Ff",
+      "name": "leetcode"
+    },
+    {
+      "updatedAt": "2026-01-14T05:14:12.090Z",
+      "createdAt": "2026-01-14T05:14:12.090Z",
+      "id": "mncJN18udUw8cVGA",
+      "name": "portfolio"
+    }
+  ]
+}
